@@ -27,11 +27,11 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
   r = await run(['DEF FN F(X)=X+1:CLEAR:PRINT FN F(1)']);
   check(r.fin.error && /UNDEF'D FUNCTION/.test(r.fin.error.message), 'CLEAR also forgets DEF FN');
   r = await run(['FOR I=1 TO 2:CLEAR:NEXT I:PRINT "ok";I']);
-  check(r.fin.error && /NEXT WITHOUT FOR/.test(r.fin.error.message), 'CLEAR empties the FOR stack (firmware: NEXT WITHOUT FOR)');
+  check(r.fin.error && /NEXT WITHOUT FOR/.test(r.fin.error.message), 'CLEAR empties the FOR stack (reference: NEXT WITHOUT FOR)');
   r = await run(['GOSUB 40', 'PRINT "back"', 'END', 'CLEAR:RETURN']);
-  check(r.fin.error && /RETURN WITHOUT GOSUB/.test(r.fin.error.message), 'CLEAR empties the GOSUB stack (firmware: RETURN WITHOUT GOSUB)');
+  check(r.fin.error && /RETURN WITHOUT GOSUB/.test(r.fin.error.message), 'CLEAR empties the GOSUB stack (reference: RETURN WITHOUT GOSUB)');
   r = await run(['DATA 1,2,3:READ A:CLEAR:READ B:PRINT A;B']);
-  check(r.fin.ended && screen(r.dev) === '01', 'CLEAR sets the DATA pointer back to the start (firmware: A=0, B=1)  (screen: "' + screen(r.dev) + '")');
+  check(r.fin.ended && screen(r.dev) === '01', 'CLEAR sets the DATA pointer back to the start (reference: A=0, B=1)  (screen: "' + screen(r.dev) + '")');
   r = await run(['GOSUB 40', 'PRINT "BACK":END', 'END', 'POP:PRINT "IN":GOTO 20']);
   check(r.fin.ended && /IN\s*BACK/.test(screen(r.dev)) && r.m.gosubs.length === 0, 'POP drops the GOSUB return address (screen: "' + screen(r.dev) + '")');
   r = await run(['POP']);
@@ -41,21 +41,21 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
   r = await run(['A$=MKS$(3.25):B$=MKS$(-3.25):PRINT CVS$(A$);LEN(A$);ASC(MID$(A$,1,1));ASC(MID$(A$,2,1));ASC(MID$(B$,2,1))']);
   check(r.fin.ended && screen(r.dev) === '3.25513080208', 'MKS$ / CVS$: 5 bytes, exponent first (130 for 3.25), then the fraction .101b = $50, sign in bit 7 of byte 2  (screen: "' + screen(r.dev) + '")');
   r = await run(['B$=MKS$(1.5)', 'FOR I=1 TO 5:PRINT ASC(MID$(B$,I,1));",";:NEXT I']);
-  check(r.fin.ended && screen(r.dev) === '129,64,0,0,0,', 'MKS$(1.5) = 129,64,0,0,0 as read back from the NC3000 firmware  (screen: "' + screen(r.dev) + '")');
+  check(r.fin.ended && screen(r.dev) === '129,64,0,0,0,', 'MKS$(1.5) = 129,64,0,0,0 as recorded from a reference implementation  (screen: "' + screen(r.dev) + '")');
   r = await run(['PRINT ABS(CVS$(MKS$(-0.1))+0.1)<1E-6']);
   check(r.fin.ended && screen(r.dev) === '1', 'MKS$ / CVS$ round trip keeps 31 bits of fraction  (screen: "' + screen(r.dev) + '")');
 
   // 1c. operator precedence (arucil's test_case, fancyblock's grammar notes) and the device's RND generator
   r = await run(['PRINT 2^3^2;-2^2;2^-1;1 AND 1 OR 0 AND 0;1 OR 3 AND 2']);
-  check(r.fin.ended && screen(r.dev) === '64-4.511', '^ groups left to right, -2^2 = -4, AND binds tighter than OR (as on the NC3000 firmware)  (screen: "' + screen(r.dev) + '")');
+  check(r.fin.ended && screen(r.dev) === '64-4.511', '^ groups left to right, -2^2 = -4, AND binds tighter than OR (as in the reference implementation)  (screen: "' + screen(r.dev) + '")');
   r = await run(['PRINT NOT 0;NOT 5;NOT -1;NOT 1+1;NOT 0*5;-NOT 0;NOT NOT 3', 'A=1:PRINT NOT A=1;NOT A=2;6 AND 3;6 OR 3;0 OR 0.5', 'PRINT 1 OR 0 AND 0;0 AND 1 OR 1;2>1 AND 3>2;1=1 OR 0=1 AND 0=1']);
   check(r.fin.ended && screen(r.dev).replace(/\s+/g, '') === '1001' + '5-1' + '1' + '00111' + '1111', 'NOT, AND, OR give 0 or 1; NOT is tighter than * + and comparisons  (screen: "' + screen(r.dev).replace(/\s+/g, '') + '")');
-  // how the device prints numbers (PRINT, STR$ and WRITE#), checked on the NC3000 firmware
+  // how the device prints numbers (PRINT, STR$ and WRITE#), checked against a reference implementation
   r = await run(['PRINT 0.5', 'PRINT -0.1', 'PRINT 1/3', 'PRINT 0.05;" ";0.000123']);
   check(r.fin.ended && rows0(r.dev).join(' ') === '.5 -.1 .333333333 .05 1.23E-04', 'numbers print without a leading zero, 9 digits, E notation below 0.01  (' + rows0(r.dev).join(' ') + ')');
   r = await run(['PRINT 999999999;" ";1E9', 'PRINT 1234567890', 'PRINT 2^40', 'PRINT STR$(0.5);STR$(1E-3)']);
   check(r.fin.ended && rows0(r.dev).join(' ') === '999999999 1E+09 1.23456789E+09 1.09951163E+12 .51E-03', 'plain decimals up to 999999999, then E+09; STR$ uses the same format  (' + rows0(r.dev).join(' ') + ')');
-  // RND: sequences recorded from the NC3000 firmware (a 5-byte floating-point generator, docs/NC3000韌體.md)
+  // RND: sequences recorded from a reference implementation (a 5-byte floating-point generator)
   const rows = dev => { const o = []; for (let i = 0; i < 5; i++) { let t = ''; for (let k = 0; k < 20; k++) { const c = dev.text[i * 20 + k]; t += c ? String.fromCharCode(c) : ' '; } o.push(t.trimEnd()); } return o; };
   r = await run(['A=RND(-1)', 'PRINT RND(1)', 'PRINT RND(1)', 'PRINT RND(0)', 'PRINT RND(5)']);
   check(r.fin.ended && rows(r.dev).slice(0, 4).join(' ') === '.738207502 .272707136 .272707136 .299733446', 'RND(-1) starts the sequence .738207502 .272707136 .299733446, RND(0) repeats, RND(5) is just the next one  (' + rows(r.dev).join(' ') + ')');
@@ -80,7 +80,7 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
   r = await run(['OPEN "Q" FOR OUTPUT AS 1:PRINT LOF(1)']);
   check(r.fin.error && /FILE MODE/.test(r.fin.error.message), 'LOF needs a random file');
 
-  // 1d2. file and random-file semantics measured on the real firmware (docs/NC3000韌體.md): LSET writes over the start of the variable and leaves the rest, RSET
+  // 1d2. file and random-file semantics measured against a reference implementation: LSET writes over the start of the variable and leaves the rest, RSET
   // fills the whole width with blanks on the left, the FIELD variables are windows into one record buffer, a plain assignment cuts a variable loose from it
   {
     const H = ['OPEN "R" FOR RANDOM AS #1 LEN=8', 'FIELD #1,4 AS A$,4 AS B$'];
@@ -111,7 +111,7 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
       [['PRINT "[";CHR$(31);"]"'], '[]', 'PRINT draws no cell for CHR$(31) either'],
     ];
     for (const [prog, want, what] of cases) { r = await run(prog); check(r.fin.ended && screen(r.dev) === want, what + '  (screen: "' + screen(r.dev) + '"' + (r.fin.error ? ', error: ' + r.fin.error.message : '') + ')'); }
-    const errors = [   // [program, error pattern, text]: the names the firmware prints; a statement that names a file that is not open (or open in the wrong mode) is a SYNTAX ERROR there, the functions say FILE MODE
+    const errors = [   // [program, error pattern, text]: the names the reference prints; a statement that names a file that is not open (or open in the wrong mode) is a SYNTAX ERROR there, the functions say FILE MODE
       [['GET #1,1'], /^SYNTAX/, 'GET on a file that is not open'],
       [['WRITE #1,"X"'], /^SYNTAX/, 'WRITE# on a file that is not open'],
       [['INPUT #1,A$'], /^SYNTAX/, 'INPUT# on a file that is not open'],
@@ -150,7 +150,7 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
   check(r.fin.ended && screen(r.dev).replace(/\s+/g, ' ') === 'NO END', 'a colon in front of ELSE after THEN n  (screen: "' + screen(r.dev) + '")');
   r = await run(['A=1:IF A=1 THEN PRINT "T":ELSE PRINT "F"', 'IF A=2 THEN 60 ELSE PRINT "E"']);
   check(r.fin.ended && screen(r.dev).replace(/\s+/g, ' ') === 'T E', 'ELSE still works with and without the colon  (screen: "' + screen(r.dev) + '")');
-  // junk after an assignment: checked on the NC3000 firmware (docs/NC3000韌體.md). Inside THEN/ELSE the rest of the line is dropped silently, anywhere else it is a SYNTAX ERROR.
+  // junk after an assignment: checked against a reference implementation. Inside THEN/ELSE the rest of the line is dropped silently, anywhere else it is a SYNTAX ERROR.
   r = await run(['A=0:IF A=1 THEN PRINT "T" ELSE B$="" GOTO 40', 'PRINT "NOJUMP"', 'END', 'PRINT "AT40"']);
   check(r.fin.ended && screen(r.dev) === 'NOJUMP', 'ELSE B$="" GOTO 40: the GOTO after the assignment is ignored, the next line runs  (screen: "' + screen(r.dev) + '")');
   r = await run(['IF 1=1 THEN B$="" PRINT "X":PRINT "Y"', 'PRINT "N"']);
@@ -227,7 +227,7 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
 
   // 4. OPEN on a file number that is still open is an error (the setup programs of a real RPG stop there; their DAT files match byte for byte)
   r = await run(['OPEN "A" FOR OUTPUT AS #1', 'OPEN "A" FOR APPEND AS #1']);
-  check(r.fin.error && /^FILE OPEN/.test(r.fin.error.message), 'OPEN on an open file number raises FILE OPEN (the firmware\'s name for it)');
+  check(r.fin.error && /^FILE OPEN/.test(r.fin.error.message), 'OPEN on an open file number raises FILE OPEN (the reference\'s name for it)');
 
   // 5. READ continues through all DATA statements in program order; OUT OF DATA when they run out
   r = await run(['DATA 1,2:READ A,B', 'DATA 3:READ C:READ D']);
@@ -279,7 +279,7 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
     check(screen(dev) !== '' && /Q/.test(screen(dev)), 'the line that was finished is still typed text (the Q is on the screen)');
   }
 
-  // 5e. the key codes INKEY$ gives (measured on the NC3000 firmware: one character each; F1-F4 = 28-31, help 25, arrows 20-23, letters always lower case)
+  // 5e. the key codes INKEY$ gives (measured against a reference implementation: one character each; F1-F4 = 28-31, help 25, arrows 20-23, letters always lower case)
   {
     const K = G.codeFromKey;
     check(['F1', 'F2', 'F3', 'F4'].map(K).join() === '28,29,30,31', 'F1-F4 are the key codes 28-31 (F1 used to be the help key 25)  (' + ['F1', 'F2', 'F3', 'F4'].map(K).join() + ')');
@@ -289,7 +289,7 @@ const screen = dev => { let s = ''; for (let i = 0; i < 100; i++) s += dev.text[
     check(K('b') === 98 && K('1') === 98 && K('9') === 117, 'the number keys 1-9 are the keys b n m / g h j / t y u');
   }
 
-  // 5f. a string literal needs no closing quote at the end of a line, and then runs to the end of the line, colons included (measured on the NC3000 firmware, whose own editor does not add the quote either)
+  // 5f. a string literal needs no closing quote at the end of a line, and then runs to the end of the line, colons included (measured against a reference implementation, whose own editor does not add the quote either)
   {
     const cases = [
       [['PRINT "AB'], 'AB', 'PRINT "AB without the closing quote prints AB'],

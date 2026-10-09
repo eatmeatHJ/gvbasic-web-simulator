@@ -1,7 +1,7 @@
 // node web/test_machinecode.js : machine code (CALL, INT $xxxx system calls, small BIN) running next to GVBASIC
 const G = require('./gvb.js');
 const { assemble } = require('./asm6502.js');
-const { parseSmallBin, makeSmallBin } = require('./wqxos.js');
+const { parseSmallBin, makeSmallBin } = require('./syscalls.js');
 let failed = 0;
 const check = (ok, what) => { console.log((ok ? 'PASS ' : 'FAIL ') + what); if (!ok) failed++; };
 const big5 = new TextDecoder('big5');

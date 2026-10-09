@@ -109,7 +109,7 @@ footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
 <body>
 <div class="wrap">
   <h1>GVBASIC 模擬器</h1>
-  <p class="sub">文曲星 / 哈電族的 GVBASIC。選一個資料夾，在選單裡挑 <code>.BAS</code> 執行；程式存取的資料檔（<code>.DAT</code>）以該程式所在的資料夾為準。</p>
+  <p class="sub">GVBASIC 程式的瀏覽器模擬器。選一個資料夾，在選單裡挑 <code>.BAS</code> 執行；程式存取的資料檔（<code>.DAT</code>）以該程式所在的資料夾為準。</p>
 
   <div class="grid">
     <section>
@@ -156,7 +156,7 @@ footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
           <label>BASIC 速度 <select id="speed" aria-label="BASIC 執行速度"></select></label>
           <label><input type="checkbox" id="sound" checked> 聲音（<code>BEEP</code>／<code>PLAY</code>）</label>
           <label>機器碼速度 <select id="mhz" aria-label="CALL 機器碼的執行速度"></select></label>
-          <label>鍵盤矩陣（機型） <select id="kbd" aria-label="讀原始按鍵值的程式用哪一套鍵盤位置"></select></label>
+          <label>鍵盤矩陣 <select id="kbd" aria-label="讀原始按鍵值的程式用哪一套鍵盤位置"></select></label>
           <label>機器碼遊戲幀率 <select id="fps" aria-label="機器碼遊戲的幀率"></select></label>
           <label>BAS 字集 <select id="cs" aria-label="BAS 程式的字集"></select></label>
           <label>圖形字編號 <select id="picto" aria-label="機器內建圖形字（Big5 FA40 起）的編號方式"></select></label>
@@ -167,7 +167,7 @@ footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
       <div class="card">
         <h2>裝置時鐘</h2>
         <div class="ctl"><select id="hour" aria-label="PEEK(1015) 小時"><option value="">使用電腦目前時間</option></select></div>
-        <p class="muted" style="margin:8px 0 0">程式用 <code>PEEK(1015)</code> 讀取「小時」（已由真機韌體確認；<code>1016</code>–<code>1021</code> 依序是分、秒、年、月、日、星期，取電腦的時間）。可在這裡指定時段來測試。</p>
+        <p class="muted" style="margin:8px 0 0">程式用 <code>PEEK(1015)</code> 讀取「小時」（已實測確認；<code>1016</code>–<code>1021</code> 依序是分、秒、年、月、日、星期，取電腦的時間）。可在這裡指定時段來測試。</p>
       </div>
 
       <div class="card">
@@ -175,7 +175,7 @@ footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
         <p class="muted" style="margin:0 0 6px"><b>BAS</b> 是程式，<b>DAT</b> 是資料檔：程式用 <code>OPEN "名稱"</code> 時會自動補上 <code>.DAT</code>，並在程式所在的資料夾裡讀寫。</p>
         <p class="muted" style="margin:0 0 6px">在 Chrome / Edge 選擇資料夾後，存檔會直接寫回實體資料夾。其他瀏覽器只能讀取，程式寫出的 DAT 暫存在瀏覽器裡，可用「下載」取出。</p>
         <p class="muted" style="margin:0 0 6px">機器內建的圖形字（Big5 <code>FA40</code> 以後：花色、箭頭、房子、圖示）有真機的點陣，編號有兩種（見「圖形字編號」，預設依程式自動判斷）；對不上圖的碼顯示成帶框的十六進位碼小方塊。</p>
-        <p class="muted" style="margin:0">讀「原始按鍵值」（鍵盤掃描 RAM：8 個位元組，按下的鍵把自己的那一位清成 0）的程式用的是文曲星的鍵盤矩陣，每個鍵都有固定的位置。矩陣從哪個位址開始因機型而異，「鍵盤矩陣」可以選：NC1020 從 <code>$BC</code> 起、NC2010／TC808 從 <code>$BF</code> 起；選「自動」時，程式裡有用 <code>PEEK(191)</code>…<code>PEEK(198)</code> 這類固定位址就當 NC2010／TC808，否則當 NC1020。程式的按鍵對不上時，換一個機型試試。</p>
+        <p class="muted" style="margin:0">讀「原始按鍵值」（鍵盤掃描 RAM：8 個位元組，按下的鍵把自己的那一位清成 0）的程式用的是機器的鍵盤矩陣，每個鍵都有固定的位置。矩陣從哪個位址開始因機型而異，「鍵盤矩陣」可以選：從 <code>$BC</code> 起、或從 <code>$BF</code> 起；選「自動」時，程式裡有用 <code>PEEK(191)</code>…<code>PEEK(198)</code> 這類固定位址就當從 <code>$BF</code> 起，否則當從 <code>$BC</code> 起。程式的按鍵對不上時，換另一個試試。</p>
       </div>
     </aside>
   </div>
@@ -188,8 +188,8 @@ footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
 <script src="lcdfont.js"></script>
 <script src="cpu6502.js"></script>
 <script src="flash.js"></script>
-<script src="wqxhw.js"></script>
-<script src="wqxos.js"></script>
+<script src="hwlayer.js"></script>
+<script src="syscalls.js"></script>
 <script src="gvb.js"></script>
 <script src="txt2bas.js"></script>
 <script src="fsys.js"></script>

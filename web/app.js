@@ -4,7 +4,7 @@ const { Machine, Device, DatStore, codeFromKey, toByteString, parseBas, compileP
 const FS = GVBFS;
 const GVE = GVBEdit;
 const { FlashImage } = FLASH;
-const HWL = WQXHW;
+const HWL = HWLAYER;
 const TXT = TXT2BAS;
 const $ = id => document.getElementById(id);
 
@@ -587,7 +587,7 @@ async function runEntry(e) {
     }
     if (e.type === 'bin') {
       // a small BIN (< 8 KB, header AA A5 5A) is loaded into RAM at $2000 and CALLed at its entry address
-      const info = WQXBIN.parseSmallBin(bytes);
+      const info = SMALLBIN.parseSmallBin(bytes);
       if (!info) throw new Error('不是小型 BIN（檔頭 AA A5 5A），也不是整頁的機器碼映像');
       small = { info, bytes };
     }
@@ -848,8 +848,8 @@ let cpuMhz = 0.5;
   sel.value = String(cpuMhz);
   sel.onchange = () => { cpuMhz = Number(sel.value); store('gvb.mhz', String(cpuMhz)); if (machine && machine.kind !== 'raw') machine.cpuMhz = cpuMhz; focusIme(); };
 })();
-/* Which keypad matrix the programs that read the scan bytes (PEEK(191) ...) see: a model's own, or automatic = the program decides (a constant PEEK(191..198) means the NC2010's $BF, anything else the NC1020's $BC) */
-const KBD_CHOICES = [['auto', '自動（依程式判斷）'], [188, 'NC1020　矩陣從 $BC 起'], [191, 'NC2010／TC808　矩陣從 $BF 起']];
+/* Which keypad matrix the programs that read the scan bytes (PEEK(191) ...) see: $BC or $BF, or automatic = the program decides (a constant PEEK(191..198) means $BF, anything else $BC) */
+const KBD_CHOICES = [['auto', '自動（依程式判斷）'], [188, '矩陣從 $BC 起'], [191, '矩陣從 $BF 起']];
 let kbdChoice = 'auto';
 const kbdBase = () => (kbdChoice === 'auto' ? 0 : Number(kbdChoice));
 (function () {

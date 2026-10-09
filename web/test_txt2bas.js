@@ -16,10 +16,10 @@ const enc = (s, e) => e === 'utf-8' ? Buffer.from(s, 'utf8') : Buffer.from(Array
   // 2. a program: tokens, ordering, deleting with a bare number, CRLF and Ctrl-Z
   let r = T.convertText('20 PRINT "B"\r\n10 PRINT "A"\r\n30 X=1\r\n30\r\n\x1a');
   check(!r.errors.length && r.lines === 2 && G.listProgram(r.bytes) === '10 PRINT "A"\n20 PRINT "B"\n', 'lines are sorted, a bare line number deletes that line, CRLF and Ctrl-Z are fine');
-  check(r.bytes[0] === 0 && G.parseBas(r.bytes).length === 2 && G.parseBas(r.bytes).base === 0x7000, 'the file is a normal .BAS (pointer base $7000 like the NC3000)');
+  check(r.bytes[0] === 0 && G.parseBas(r.bytes).length === 2 && G.parseBas(r.bytes).base === 0x7000, 'the file is a normal .BAS (pointer base $7000 as usual)');
 
   // 3. round trip of this project's own sample programs: listing -> text -> .BAS -> listing is the same
-  const dirs = ['small-game', 'ref/samples', '神州/遊戲程序'].map(d => path.join(__dirname, '..', d));
+  const dirs = ['samples'].map(d => path.join(__dirname, '..', d));
   let files = 0, same = 0; const diff = [];
   for (const d of dirs) if (fs.existsSync(d)) for (const f of fs.readdirSync(d)) {
     if (!/\.bas$/i.test(f)) continue;

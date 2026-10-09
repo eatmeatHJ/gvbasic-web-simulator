@@ -35,7 +35,7 @@ const asmSeg = src => assemble(src).segments;
   // 1. the bank window
   let r = await run(['A=PEEK(0):B=PEEK(16400):C=PEEK(32800):POKE 16400,1:D=PEEK(16400)', 'POKE 0,A+1:E=PEEK(16384):POKE 0,A+2:F=PEEK(16384)', 'POKE 12288,PEEK(1190)-A:POKE 12289,PEEK(6597)']);
   const v = n => r.m.getVar(n);
-  check(r.fin.ended && v('B') === 0x11 && v('C') === 0x33, 'the window shows the page selected by the bank register ($4010 = $11, $8020 = $33, in the PC1000 block order)');
+  check(r.fin.ended && v('B') === 0x11 && v('C') === 0x33, 'the window shows the page selected by the bank register ($4010 = $11, $8020 = $33, in the usual block order)');
   check(v('D') === 0x11, 'writes into the ROM window are ignored');
   check(v('E') === 0x77, 'bank register + 1 selects the next page');
   check(v('F') === 0, 'a bank outside the image is plain RAM');
@@ -198,11 +198,11 @@ const asmSeg = src => assemble(src).segments;
 
   // the ROM text routines the engine's text painter ($BB00) calls: they only report a cell to draw (the font is the page's, dev.paintCell)
   {
-    const { WqxOS } = require('./wqxos.js');
+    const { SysCalls } = require('./syscalls.js');
     const dev = new G.Device(), calls = []; dev.paintCell = (r, c, code) => calls.push([r, c, code]);
     dev.flash = new FlashImage(makeImage()); dev.flash.initRam(dev);
     check(dev.mem[0xCE5E] === 0 && dev.mem[0xCE60] === 26 && dev.mem[0xCE62] === 52 && dev.mem[0xCE68] === 130, 'the ROM table $CE5E holds the start of each text row in the text RAM (row pitch 26)');
-    const os = new WqxOS(dev), cpu = { a: 0, x: 0, y: 0 };
+    const os = new SysCalls(dev), cpu = { a: 0, x: 0, y: 0 };
     cpu.x = 26 * 1 + 4; os.JSR[0xD1BA].call(os, cpu); cpu.a = 0x41; os.JSR[0xCE7E].call(os, cpu); os.JSR[0xCED6].call(os, cpu);
     dev.mem[0x92] = 0xC4; dev.mem[0x93] = 0xE3; cpu.x = 26 * 2 + 10; os.JSR[0xD1BA].call(os, cpu); os.JSR[0xD716].call(os, cpu); os.JSR[0xCA5F].call(os, cpu); os.JSR[0xCEEE].call(os, cpu);
     check(JSON.stringify(calls) === '[[1,4,65],[2,10,50403]]', 'cell index -> row / column, ASCII and double-byte glyphs are reported to the page  (' + JSON.stringify(calls) + ')');
@@ -211,9 +211,9 @@ const asmSeg = src => assemble(src).segments;
 
   // INT $010A, the drawing board an RPG engine image uses for the player's 32x32 portrait; the program reads it back at $09CA (4 bytes per row)
   {
-    const { WqxOS } = require('./wqxos.js');
+    const { SysCalls } = require('./syscalls.js');
     const dev = new G.Device(); dev.flash = new FlashImage(makeImage()); dev.gfxBase = 0x09C0;
-    const os = new WqxOS(dev); let done = false; os.drawingBoard().then(() => { done = true; });
+    const os = new SysCalls(dev); let done = false; os.drawingBoard().then(() => { done = true; });
     await new Promise(r => setTimeout(r, 20));
     check(!done && dev.hint && /畫頭像/.test(dev.hint), 'the board waits for keys and shows a help line');
     {   // layout: the editing frame, the frame of the real-size picture and the area the program reads

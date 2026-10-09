@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const G = require('../web/gvb.js');
 const { assemble } = require('../web/asm6502.js');
-const { makeSmallBin } = require('../web/wqxos.js');
+const { makeSmallBin } = require('../web/syscalls.js');
 
 const out = path.join(__dirname, '..', 'demo');
 fs.mkdirSync(out, { recursive: true });

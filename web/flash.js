@@ -2,7 +2,7 @@
  * On the device a big machine-code program (an RPG engine image, GVbasic+.bin: 6 x 32 KB) is "installed" into flash pages; whatever
  * page the bank register (zero page $00) selects shows up in the window $4000-$BFFF. Programs address pages
  * relative to the register: the first page is PEEK(0), the next one PEEK(0)+1 ...
- * The window is assembled from four 8 KB blocks of the selected 32 KB page, in the PC1000 order (WQXEmu's notes):
+ * The window is assembled from four 8 KB blocks of the selected 32 KB page, in the usual order:
  *   $4000 <- +$4000   $6000 <- +$6000   $8000 <- +$0000   $A000 <- +$2000
  * This module only holds and maps the image; the file itself is the user's, it is never part of this project. */
 (function (root) {

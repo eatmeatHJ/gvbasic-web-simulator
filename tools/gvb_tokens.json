@@ -1,5 +1,5 @@
 {
-  "_doc": "GVBASIC (GGV Applesoft-derived) token table. Key = byte value in hex. All entries are the keyword table of the official converter 'GVBASIC转换程序v2.0' (BasToTxt.exe, 2001): 110 keywords in order, token byte = 0x80 + index (verified: 83 entries already confirmed from real programs agree, the 5 that did not were our guesses). kind (ours): stmt = statement keyword (may be followed by args), func = function name (followed by '(' literal in the stream, except noarg), op = operator, kw = clause keyword, noarg = value token with no parens (INKEY$).",
+  "_doc": "GVBASIC token table. Key = byte value in hex. All entries are the keyword table of the official converter 'GVBASIC转换程序v2.0' (BasToTxt.exe, 2001): 110 keywords in order, token byte = 0x80 + index (verified: 83 entries already confirmed from real programs agree, the 5 that did not were our guesses). kind (ours): stmt = statement keyword (may be followed by args), func = function name (followed by '(' literal in the stream, except noarg), op = operator, kw = clause keyword, noarg = value token with no parens (INKEY$).",
   "80": {"n": "END",     "kind": "stmt", "status": "ok"},
   "81": {"n": "FOR",     "kind": "stmt", "status": "ok"},
   "82": {"n": "NEXT",    "kind": "stmt", "status": "ok"},

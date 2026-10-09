@@ -1,8 +1,4 @@
-# firmware, ROM dumps and game images are not part of this project; keep them out of any commit
-tools/nc3000/fw/
-obj.bin
-nd.bin
-winsim*
+# ROM dumps, machine images and game files are not part of this project; keep them out of any commit
 *.bin
 !demo/*.BIN
 !demo/*.bin

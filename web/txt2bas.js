@@ -29,7 +29,7 @@ function looksLikeProgram(text) {
 }
 
 /* text -> { bytes, charset, lines, errors: [{line, no, msg}], warnings: [{no, msg}] }
- * opts: { charset: 'auto' | 'big5' | 'gbk', base: pointer base of the file (default $7000, the NC3000),
+ * opts: { charset: 'auto' | 'big5' | 'gbk', base: pointer base of the file (default $7000, the usual value),
  *         ext: true = also accept the arucil simulator's own words (result.ext = true, result.extUsed lists them; the bytes only run in this emulator),
  *              'auto' = device language first, the simulator's words only if they are the only problem } */
 function convertText(text, opts) {

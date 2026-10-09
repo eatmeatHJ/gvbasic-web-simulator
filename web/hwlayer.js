@@ -130,5 +130,5 @@ class RawGame {
 }
 
 const api = { detectGame, classifyImage, HwIO, RawGame, GAME_KEYS, KEYS_HELP };
-if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.WQXHW = api;
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.HWLAYER = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

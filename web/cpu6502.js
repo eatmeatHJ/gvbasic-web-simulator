@@ -1,4 +1,4 @@
-/* MOS 6502 (NMOS) CPU core, as used in the Wenquxing family (CC800 / PC1000 / NC1020 ...).
+/* MOS 6502 (NMOS) CPU core, as used in the handheld devices this simulator targets.
  * Documented instructions incl. decimal mode and the JMP ($xxFF) page bug; every other opcode is a NOP of the
  * size the real chip fetches (the device emulators treat them that way), counted in cpu.illegal.
  * The CPU only talks to a bus {read(addr), write(addr, value)} and has two hooks the emulated OS uses:

@@ -1,5 +1,5 @@
 /* The device's system routines, implemented in JS ("high-level emulation", like DOSBox does for INT 21h).
- * Machine code reaches them in two ways (see docs/文曲星-系統調用.md):
+ * Machine code reaches them in two ways:
  *    INT $pppp     the 3-byte instruction 00 pp pp (page, entry)  -> cpu.onBrk
  *    JSR $E0xx     a fixed ROM address                             -> cpu.traps
  * Anything not implemented stops the program with a message that names the call, so the next one to implement
@@ -11,7 +11,7 @@
 const hex4 = n => n.toString(16).toUpperCase().padStart(4, '0');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-class WqxOS {
+class SysCalls {
   constructor(dev, opts) {
     this.dev = dev; this.opts = opts || {};
     this.delayMs = this.opts.delayMs === undefined ? 1 : this.opts.delayMs;     // length of one DELAY unit (approximate)
@@ -232,6 +232,6 @@ function makeSmallBin(code, entry) {                 // code is placed at $2010;
     0x70, 0x03, 0x31, 0x03, 0xFF, 0xFF, ...code]);
 }
 
-const api = { WqxOS, parseSmallBin, makeSmallBin };
-if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.WQXOS = WqxOS, root.WQXBIN = { parseSmallBin, makeSmallBin };
+const api = { SysCalls, parseSmallBin, makeSmallBin };
+if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SYSCALLS = SysCalls, root.SMALLBIN = { parseSmallBin, makeSmallBin };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

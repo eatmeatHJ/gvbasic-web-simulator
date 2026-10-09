@@ -1,5 +1,5 @@
-// node web/test_hw.js : the hardware layer for games that talk to the chip directly (wqxhw.js), with a tiny game made up here
-const G = require('./gvb.js'), HW = require('./wqxhw.js'), { FlashImage } = require('./flash.js'), { assemble } = require('./asm6502.js');
+// node web/test_hw.js : the hardware layer for games that talk to the chip directly (hwlayer.js), with a tiny game made up here
+const G = require('./gvb.js'), HW = require('./hwlayer.js'), { FlashImage } = require('./flash.js'), { assemble } = require('./asm6502.js');
 let failed = 0;
 const check = (ok, what) => { console.log((ok ? 'PASS ' : 'FAIL ') + what); if (!ok) failed++; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -85,11 +85,6 @@ loop: LDA $01
   { const dv = new G.Device(), gm = new HW.RawGame(dv, new FlashImage(withInt, { name: 'TEST GAME' }), HW.detectGame(withInt), { autoTick: false });
     const res = await gm.run();
     check(res.error && /安裝/.test(res.error.message), 'forced to run as a game, such an image stops with a message that says to install it instead  (' + (res.error && res.error.message.slice(0, 40)) + ')'); }
-  { const fsm = require('fs'), pth = require('path'); const real = [['神州/GVbasic+.bin', 'install'], ['SUPER-MARIO V1.2.bin', 'game']];
-    for (const [f, want] of real) {
-      const p = pth.join(__dirname, '..', f); if (!fsm.existsSync(p)) { console.log('skip  ' + f + ' is not here'); continue; }
-      const c = HW.classifyImage(new Uint8Array(fsm.readFileSync(p)));
-      check(c.kind === want, 'the real ' + f + ' is told apart correctly: ' + c.kind + '  (' + c.reason + ')'); } }
 
   console.log(failed ? '\n' + failed + ' FAILED' : '\nall passed');
   process.exit(failed ? 1 : 0);

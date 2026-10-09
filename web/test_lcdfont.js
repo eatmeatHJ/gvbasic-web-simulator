@@ -39,8 +39,6 @@ check(F.glyph16(0xA1, 0xA1) !== null && F.glyph16(0x81, 0x40) === null, 'the ide
   check(G.detectPictoFamily([body(0xFA56, 0xFA58)]) === 'b' && G.detectPictoFamily([body(0xFA59, 0xFA5A, 0xFA56, 0xFA58)]) === 'b', 'detectPictoFamily: two of the arrows FA56 FA58 FA59 FA5A mean numbering b');
   check(G.detectPictoFamily([body(0xFA50, 0xFA52, 0xFA56)]) === 'a' && G.detectPictoFamily([body(0xFA58)]) === 'a' && G.detectPictoFamily([body(0xFA47, 0xFA48)]) === 'a' && G.detectPictoFamily([]) === 'a', 'numbering a: its arrows, a lone FA58, suits only, nothing at all');
   check(G.detectPictoFamily([body(0xFA56, 0xFB04)]) === 'b', 'a code with a second byte below 40 can only be numbering b');
-  const fs = require('fs'), path = require('path'), midi = path.join(__dirname, '..', 'MIDI EDITOR.BAS');
-  if (fs.existsSync(midi)) check(G.detectPictoFamily(G.parseBas(new Uint8Array(fs.readFileSync(midi)))) === 'b', 'a music editor that shows the up / down keys as FA56 FA58 is detected as numbering b');
 }
 
 // the stamper (used by the snapshot tests): GBK text lands in the bitmap as the font says

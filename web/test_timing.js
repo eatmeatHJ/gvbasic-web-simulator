@@ -38,15 +38,15 @@ async function run(basic, setup) {
   r = await run(['A$=INKEY$', 'FOR I=1 TO 100:NEXT I'], (d, m) => { m.rate = 1000; setTimeout(() => d.keyDown(13, ''), 400); });
   check(r.ms >= 450 && r.ms < 900, 'time spent waiting for a key is not "saved up" (the loop after it still takes its 0.1 s: total ' + r.ms + ' ms)');
 
-  // 3b. the clock bytes $03F7-$03FD (PEEK 1015-1021): hour, minute, second in steps of two, year - 1881, month, day (0-based), weekday (0 = Sunday); layout from the NC3000 firmware's tick routine
+  // 3b. the clock bytes $03F7-$03FD (PEEK 1015-1021): hour, minute, second in steps of two, year - 1881, month, day (0-based), weekday (0 = Sunday); layout as recorded from a reference implementation
   {
-    const dv = new G.Device(); dv.clock = () => new Date(2004, 0, 1, 12, 34, 57);       // the firmware's own default date: Thursday 2004-01-01
+    const dv = new G.Device(); dv.clock = () => new Date(2004, 0, 1, 12, 34, 57);       // the reference's own default date: Thursday 2004-01-01
     const got = [1015, 1016, 1017, 1018, 1019, 1020, 1021].map(a => dv.peek(a));
     check(got.join() === [12, 34, 56, 123, 0, 0, 4].join(), 'PEEK(1015..1021) = hour, minute, second (even), year-1881, month-1, day-1, weekday  (' + got.join(',') + ')');
     dv.hour = () => 7; check(dv.peek(1015) === 7 && dv.peek(1016) === 34, 'the page can pin the hour (1015) without touching the other bytes');
   }
 
-  // 4. the keypad matrix on the plain machine: 8 bytes, a pressed key clears its bit (arucil's key table); $BC.. like the NC1020 (a duel program), $BF.. for programs that read PEEK(191..198)
+  // 4. the keypad matrix on the plain machine: 8 bytes, a pressed key clears its bit (arucil's key table); $BC.. by default, $BF.. for programs that read PEEK(191..198)
   const dev = new G.Device(); dev.resetRaw();
   check(Array.from({ length: 8 }, (_, i) => dev.mem[188 + i]).every(v => v === 0xFF), 'the matrix idles at $FF (8 bytes from $BC)');
   dev.keyDown(113, ''); const q1 = dev.mem[0xC3] === 0xEF;          // Q: byte 7, bit 4
@@ -67,7 +67,7 @@ async function run(basic, setup) {
 
   { const run2 = async (src, base) => { const d = new G.Device(), m = new G.Machine(d, new G.DatStore([])); m.prog = G.compileProgram([{ no: 10, body: G.tokenizeBody(src) }]); if (base) m.rawBase = base; await m.run(); return d; };
     const a = await run2('X=1'), b = await run2('X=PEEK(191)'), c = await run2('X=1', 191), e = await run2('X=PEEK(191)', 188);
-    check(a.rawBase === 188 && b.rawBase === 191 && c.rawBase === 191 && e.rawBase === 188, 'the keypad model chosen on the page wins over the program-based guess (auto: ' + a.rawBase + ' / ' + b.rawBase + ', NC2010 chosen: ' + c.rawBase + ', NC1020 chosen: ' + e.rawBase + ')');
+    check(a.rawBase === 188 && b.rawBase === 191 && c.rawBase === 191 && e.rawBase === 188, 'the keypad model chosen on the page wins over the program-based guess (auto: ' + a.rawBase + ' / ' + b.rawBase + ', $BF chosen: ' + c.rawBase + ', $BC chosen: ' + e.rawBase + ')');
     check(c.mem[191] === 0xFF && c.mem[198] === 0xFF && e.mem[188] === 0xFF, 'the chosen matrix idles at $FF'); }
 
   console.log(failed ? '\n' + failed + ' FAILED' : '\nall passed');
