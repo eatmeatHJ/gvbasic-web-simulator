@@ -1,0 +1,16 @@
+# firmware, ROM dumps and game images are not part of this project; keep them out of any commit
+tools/nc3000/fw/
+obj.bin
+nd.bin
+winsim*
+*.bin
+!demo/*.BIN
+!demo/*.bin
+
+# local working folders (programs to test with, reference sources, notes)
+/samples/
+/ref/
+node_modules/
+*.log
+Thumbs.db
+Desktop.ini

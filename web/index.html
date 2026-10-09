@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GVBASIC 模擬器</title>
+<style>
+:root {
+  --bg: #f3f1ec; --panel: #fffdf8; --ink: #2a2a26; --muted: #6d6a60; --line: #ddd8cb; --accent: #3b6e4f;
+  --shell: #d9d5c8; --shell-dark: #bdb8a8; --key: #efece2; --key-edge: #a9a595;
+  --lcd-bg: #b4c49c; --lcd-fg: #202a20; --err: #b3261e; --sel: #e6eedc;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1d1e1b; --panel: #272823; --ink: #e8e6dc; --muted: #9b998c; --line: #3b3c35; --accent: #7fbf97;
+    --shell: #3a3b35; --shell-dark: #2c2d28; --key: #4a4b43; --key-edge: #20211d; --err: #ff8a80; --sel: #34402f; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 20px; margin: 0 0 2px; }
+.sub { color: var(--muted); margin: 0 0 18px; font-size: 13px; }
+.grid { display: grid; grid-template-columns: minmax(0, 700px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 960px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.device { background: var(--shell); border-radius: 20px; padding: 18px; box-shadow: 0 2px 0 var(--shell-dark), 0 10px 24px rgba(0,0,0,.14); }
+.bezel { background: #22251f; border-radius: 10px; padding: 14px; }
+/* the device font has a 1px gap on the left and none on the right, so the left padding is smaller by that amount */
+.lcdwrap { background: var(--lcd-bg); padding: 2.2% 2.8% 2.2% 2.2%; border-radius: 3px; }
+#lcd { display: block; width: 100%; height: auto; aspect-ratio: 2 / 1; image-rendering: pixelated; cursor: text; }
+.statusbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 22px; }
+.statusbar b { color: var(--ink); font-weight: 600; }
+.statusbar .err { color: var(--err); font-weight: 600; }
+.chips { display: inline-flex; gap: 6px; margin-left: auto; margin-right: 8px; }
+.chip { font: inherit; font-size: 12px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line, #888); background: transparent; color: var(--muted); }
+button.chip { cursor: pointer; } .chip.on { color: var(--ink); border-color: var(--ink); font-weight: 600; }
+.chip.warn { color: var(--err); border-color: var(--err); font-weight: 600; }
+#prog { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #999; margin-right: 6px; vertical-align: 1px; }
+.dot.run { background: #3fae5f; } .dot.err { background: var(--err); } .dot.wait { background: #e0a82e; }
+
+.pad { margin-top: 14px; display: grid; gap: 6px; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.row { display: flex; gap: 6px; justify-content: center; }
+.k { position: relative; min-width: 0; flex: 1 1 0; max-width: 56px; height: 40px; border: 0; border-radius: 7px; background: var(--key);
+  color: var(--ink); font: 600 14px/1 system-ui, sans-serif; box-shadow: 0 2px 0 var(--key-edge); cursor: pointer; padding: 0; }
+.k:active, .k.down { transform: translateY(2px); box-shadow: 0 0 0 var(--key-edge); }
+.k .n { position: absolute; top: 3px; right: 5px; font-size: 10px; color: var(--accent); font-weight: 700; }
+.k.wide { max-width: 90px; flex: 1.6 1 0; font-size: 12px; }
+.k.fn { height: 32px; font-size: 12px; }
+.k.sym { height: 32px; max-width: 34px; font-size: 14px; }
+.k.on { background: var(--accent); color: #fff; }
+.arrows { display: flex; gap: 6px; justify-content: center; }
+.hint { margin: 10px 2px 0; font-size: 12.5px; color: var(--muted); }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.card h2 { font-size: 14px; margin: 0 0 10px; letter-spacing: .02em; }
+.ctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); }
+button.b { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+button.b:hover:not(:disabled) { border-color: var(--accent); }
+button.b:disabled { opacity: .45; cursor: default; }
+button.b.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+button.b.sm { padding: 2px 9px; font-size: 12.5px; }
+.muted { color: var(--muted); font-size: 13px; }
+.crumbs { display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: center; margin: 10px 0 6px; font-size: 13.5px; }
+.crumbs button { font: inherit; border: 0; background: none; color: var(--accent); cursor: pointer; padding: 1px 3px; border-radius: 4px; text-decoration: underline; text-underline-offset: 2px; }
+.crumbs .cur { font-weight: 600; padding: 1px 3px; }
+.crumbs .sep { color: var(--muted); }
+.imgnote { font-size: 12.5px; margin: 0 0 8px; padding: 5px 8px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.imgnote b { color: var(--ink); }
+.flashrow { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 7px 0; border-top: 1px solid var(--line); }
+.flashrow:first-of-type { border-top: 0; }
+.flashrow button { flex: none; white-space: nowrap; }
+.flashrow .flashname { font-weight: 600; word-break: break-all; }
+kbd { font: 600 12px ui-monospace, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+table.files { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.files td { padding: 4px 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+table.files tr.sel td { background: var(--sel); }
+/* a row is a flex line: the name (cut with an ellipsis) takes what it needs, the buttons stay on its right and drop to a line of their own, right aligned, when the panel is too narrow */
+table.files, table.files tbody { display: block; width: 100%; }
+table.files tr { display: flex; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--line); }
+table.files tr.sel { background: var(--sel); }
+table.files td { display: block; border-top: 0; }
+table.files td.nm { flex: 1 1 11em; min-width: 0; }
+table.files td.nm.wrapnm { word-break: break-all; }
+table.files td.act { flex: 0 0 auto; margin-left: auto; text-align: right; width: auto; white-space: nowrap; }
+table.files td.act.wrap { white-space: normal; }
+table.files td.act button { margin: 2px 0 2px 4px; white-space: nowrap; }
+.nmrow { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.nmrow > a, .nmrow > .fname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 1 auto; }
+.nmrow > .tag, .nmrow > .sz { flex: none; }
+.wrapnm .nmrow > .fname { white-space: normal; word-break: break-all; }
+button.b.ic { padding: 0; width: 28px; height: 26px; font-size: 14px; line-height: 1; }
+button.b.ic.run { color: var(--accent); }
+.fmenu { position: fixed; z-index: 50; display: flex; flex-direction: column; min-width: 150px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.fmenu button { text-align: left; font: inherit; font-size: 13px; padding: 6px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer; }
+.fmenu button:hover:not(:disabled) { background: var(--sel); }
+.fmenu button:disabled { opacity: .45; cursor: default; }
+@media (max-width: 560px) { table.files td.act { white-space: normal; } }
+table.files td.nm a { color: var(--ink); text-decoration: none; cursor: pointer; }
+table.files td.nm a:hover { color: var(--accent); }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 4px; margin-right: 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.tag.bas { color: var(--accent); border-color: var(--accent); }
+pre#viewer { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 12.5px/1.5 ui-monospace, Consolas, "MingLiU", monospace; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
+#ime { position: absolute; opacity: 0; width: 1px; height: 1px; left: 0; top: 0; pointer-events: none; }
+footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>GVBASIC 模擬器</h1>
+  <p class="sub">文曲星 / 哈電族的 GVBASIC。選一個資料夾，在選單裡挑 <code>.BAS</code> 執行；程式存取的資料檔（<code>.DAT</code>）以該程式所在的資料夾為準。</p>
+
+  <div class="grid">
+    <section>
+      <div class="device">
+        <div class="bezel"><div class="lcdwrap"><canvas id="lcd" width="640" height="320" aria-label="LCD 螢幕" tabindex="0"></canvas></div></div>
+        <div class="statusbar"><span id="status"></span><span class="chips"><span id="notechip" class="chip warn" hidden></span><span id="capschip" class="chip" hidden>a 小寫</span><button type="button" id="imebtn" class="chip">輸入：直接</button></span><span id="prog"></span></div>
+        <input id="ime" type="password" autocomplete="new-password" aria-hidden="true" tabindex="-1">
+        <div class="pad" id="pad"></div>
+        <p class="hint"><b>選單</b>：<kbd>↑</kbd><kbd>↓</kbd> 選擇、<kbd>Enter</kbd> 開啟／執行、<kbd>←</kbd> 或 <kbd>Esc</kbd> 回上層、<kbd>F1</kbd> 新增、<kbd>F2</kbd> 刪除、<kbd>F4</kbd> 修改程式（<kbd>F3</kbd> 查找沒有功能）；選到 .txt 時 <kbd>Enter</kbd> 轉成 BAS、<kbd>Shift</kbd>+<kbd>Enter</kbd> 試跑（不存檔）。<br>
+          <b>編輯畫面</b>：方向鍵移動、<kbd>Enter</kbd> 換行（自動補下一個行號）、<kbd>Backspace</kbd>／<kbd>Delete</kbd> 刪字、<kbd>Insert</kbd> 切換插入／覆蓋；<b><kbd>Esc</kbd> 結束編輯並儲存</b>：輸入檔名後按 <kbd>Enter</kbd> 存檔；<b><kbd>F2</kbd> 放棄修改直接離開</b>（有改動時會先確認）。<br>
+          <b>程式執行中</b>：數字鍵 <kbd>1</kbd>–<kbd>9</kbd> 對應機器上的 <kbd>b n m / g h j / t y u</kbd>，<kbd>?</kbd> 或「幫助」鍵為求助鍵（按鍵碼 25）；<kbd>F1</kbd>–<kbd>F4</kbd> 是按鍵碼 28–31；<kbd>PageUp</kbd>／<kbd>PageDown</kbd> 是翻頁鍵；字母永遠是小寫碼。鍵盤預設「直接輸入」，不受系統輸入法（注音等）影響；要打中文，按狀態列的「輸入：直接」或鍵盤上的「輸入法」鍵切到中文輸入法。螢幕上的「數字鍵」切換後，字母鍵會打出鍵上標的數字。</p>
+      </div>
+    </section>
+
+    <aside>
+      <div class="card">
+        <h2>資料夾</h2>
+        <div class="ctl">
+          <button class="b primary" id="pick">選擇資料夾…</button>
+          <button class="b" id="reopen" hidden></button>
+          <button class="b" id="newprog" title="在目前資料夾新增程式（同 F1）" disabled>＋ 新增程式</button>
+          <button class="b" id="refresh" title="重新讀取目前資料夾">重新整理</button>
+          <button class="b" id="stop">■ 停止</button>
+        </div>
+        <input type="file" id="pickfb" webkitdirectory multiple hidden>
+        <p class="muted" id="mode" style="margin:8px 0 0"></p>
+        <div class="crumbs" id="crumbs"></div>
+        <div class="imgnote" id="imgnote" hidden></div>
+        <table class="files" id="files"></table>
+        <pre id="viewer" hidden></pre>
+      </div>
+
+      <div class="card" id="flashcard" hidden>
+        <h2 id="flashtitle">已安裝的機器碼映像</h2>
+        <div id="flashlist"></div>
+        <div class="ctl"><button class="b" id="flashall" hidden>全部移除</button></div>
+        <p class="muted" style="margin:8px 0 0">映像只對放著它的資料夾（含子資料夾）裡的程式生效，那些程式會在「大陸機種」上跑：螢幕 RAM 位址、字集（GBK）、分頁視窗都跟著改變，程式裡的 <code>CALL</code> 直接進入映像裡的機器碼。同一個資料夾只能有一個映像（再裝一個會取代它）；不同資料夾可以各有自己的映像。映像只存在你的瀏覽器裡，不會上傳。</p>
+        <p class="muted" style="margin:6px 0 0">「安裝」就是真機上把大型 BIN 裝進快閃（真機第一次執行時顯示「裝入中…」）；有些說明書稱「植入」。程式存進快閃的存檔（例如遊戲的「Flash 存檔」）會寫在這份映像的複本裡，也留在這個瀏覽器；「重新安裝」會把它還原成原檔，存檔就沒了。</p>
+      </div>
+
+      <div class="card">
+        <h2>執行速度與聲音</h2>
+        <div class="ctl">
+          <label>BASIC 速度 <select id="speed" aria-label="BASIC 執行速度"></select></label>
+          <label><input type="checkbox" id="sound" checked> 聲音（<code>BEEP</code>／<code>PLAY</code>）</label>
+          <label>機器碼速度 <select id="mhz" aria-label="CALL 機器碼的執行速度"></select></label>
+          <label>鍵盤矩陣（機型） <select id="kbd" aria-label="讀原始按鍵值的程式用哪一套鍵盤位置"></select></label>
+          <label>機器碼遊戲幀率 <select id="fps" aria-label="機器碼遊戲的幀率"></select></label>
+          <label>BAS 字集 <select id="cs" aria-label="BAS 程式的字集"></select></label>
+          <label>圖形字編號 <select id="picto" aria-label="機器內建圖形字（Big5 FA40 起）的編號方式"></select></label>
+        </div>
+        <p class="muted" style="margin:8px 0 0">真機的 BASIC 很慢，很多程式用 <code>FOR I=1 TO 1500:NEXT I</code> 當延遲、用迴圈圈數計反應時間。不限速時這些會在瞬間跑完。BASIC 速度是估計值（每秒執行的語句數），可隨時調整。<code>CALL</code> 進去的機器碼另外用「機器碼速度」限速（每秒執行的指令數，也是估計值，不是任何機型的真實時脈），覺得太快或太慢可以改。直接操作硬體的機器碼程式則以「幀率」為準：程式自己等計時器的旗標來同步畫面，真機的計時器週期不明，所以幀率是估計值，可以改。BAS 程式裡的中文是 Big5（台灣機種）還是 GBK（大陸機種），預設從文字自動判斷，判斷錯了（亂碼）可以在這裡指定。</p>
+      </div>
+
+      <div class="card">
+        <h2>裝置時鐘</h2>
+        <div class="ctl"><select id="hour" aria-label="PEEK(1015) 小時"><option value="">使用電腦目前時間</option></select></div>
+        <p class="muted" style="margin:8px 0 0">程式用 <code>PEEK(1015)</code> 讀取「小時」（已由真機韌體確認；<code>1016</code>–<code>1021</code> 依序是分、秒、年、月、日、星期，取電腦的時間）。可在這裡指定時段來測試。</p>
+      </div>
+
+      <div class="card">
+        <h2>說明</h2>
+        <p class="muted" style="margin:0 0 6px"><b>BAS</b> 是程式，<b>DAT</b> 是資料檔：程式用 <code>OPEN "名稱"</code> 時會自動補上 <code>.DAT</code>，並在程式所在的資料夾裡讀寫。</p>
+        <p class="muted" style="margin:0 0 6px">在 Chrome / Edge 選擇資料夾後，存檔會直接寫回實體資料夾。其他瀏覽器只能讀取，程式寫出的 DAT 暫存在瀏覽器裡，可用「下載」取出。</p>
+        <p class="muted" style="margin:0 0 6px">機器內建的圖形字（Big5 <code>FA40</code> 以後：花色、箭頭、房子、圖示）有真機的點陣，編號有兩種（見「圖形字編號」，預設依程式自動判斷）；對不上圖的碼顯示成帶框的十六進位碼小方塊。</p>
+        <p class="muted" style="margin:0">讀「原始按鍵值」（鍵盤掃描 RAM：8 個位元組，按下的鍵把自己的那一位清成 0）的程式用的是文曲星的鍵盤矩陣，每個鍵都有固定的位置。矩陣從哪個位址開始因機型而異，「鍵盤矩陣」可以選：NC1020 從 <code>$BC</code> 起、NC2010／TC808 從 <code>$BF</code> 起；選「自動」時，程式裡有用 <code>PEEK(191)</code>…<code>PEEK(198)</code> 這類固定位址就當 NC2010／TC808，否則當 NC1020。程式的按鍵對不上時，換一個機型試試。</p>
+      </div>
+    </aside>
+  </div>
+  <footer>行為依據：真機實測資料與 MIT 授權的 gvbasic-simulator4cpp。<code>.BAS</code> 直接解讀原檔，不需要轉換。</footer>
+</div>
+
+<script src="tokens.js"></script>
+<script src="font.js"></script>
+<script src="fonts.js"></script>
+<script src="lcdfont.js"></script>
+<script src="cpu6502.js"></script>
+<script src="flash.js"></script>
+<script src="wqxhw.js"></script>
+<script src="wqxos.js"></script>
+<script src="gvb.js"></script>
+<script src="txt2bas.js"></script>
+<script src="fsys.js"></script>
+<script src="editor.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

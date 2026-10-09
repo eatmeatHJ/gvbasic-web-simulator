@@ -1,0 +1,4 @@
+# 不做任何換行轉換：.BAS／.DAT 是二進位檔，測試會逐位元組比對；有些原始碼本來就是 CRLF（例如 web/gvb.js），要原樣保留
+* -text
+*.js diff
+*.md diff
