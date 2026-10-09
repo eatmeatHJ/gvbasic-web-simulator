@@ -1,59 +1,14 @@
-# Allow-list: everything is ignored unless it is listed here.
-# The working folder also holds programs to test with, reference sources, notes and scripts that need them; none of that belongs in a commit.
-# A new file that should be published does not show up in `git status` until it is added below.
-/*
-!/.gitattributes
-!/.gitignore
-!/LICENSE
-!/NOTICE.md
-!/README.md
-!/serve.bat
+# ROM dumps, machine images and game files are not part of this project; keep them out of any commit
+*.bin
+!demo/*.BIN
+!demo/*.bin
 
-!/demo/
-/demo/*
-!/demo/CALLDEMO.BAS
-!/demo/DRAW.BIN
-!/demo/HELLO.BIN
-
-!/docs/
-/docs/*
-!/docs/按鍵碼.md
-!/docs/圖形字編號.md
-!/docs/官方轉換程式.md
-
-!/tools/
-/tools/*
-!/tools/build_web.py
-!/tools/gvb_detok.py
-!/tools/gvb_lines.py
-!/tools/gvb_tokens.json
-!/tools/make_demo.js
-!/tools/txt2bas.js
-
-!/web/
-/web/*
-!/web/app.js
-!/web/asm6502.js
-!/web/cpu6502.js
-!/web/editor.js
-!/web/flash.js
-!/web/font.js
-!/web/fonts.js
-!/web/fsys.js
-!/web/gvb.js
-!/web/hwlayer.js
-!/web/index.html
-!/web/lcdfont.js
-!/web/syscalls.js
-!/web/tokens.js
-!/web/txt2bas.js
-!/web/test_compat.js
-!/web/test_cpu.js
-!/web/test_editor_charset.js
-!/web/test_extensions.js
-!/web/test_flash.js
-!/web/test_hw.js
-!/web/test_lcdfont.js
-!/web/test_machinecode.js
-!/web/test_timing.js
-!/web/test_txt2bas.js
+# local working folders (programs to test with, reference sources, notes)
+/samples/
+/ref/
+/local/
+.claude/
+node_modules/
+*.log
+Thumbs.db
+Desktop.ini
