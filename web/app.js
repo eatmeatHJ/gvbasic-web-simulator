@@ -596,7 +596,7 @@ async function runEntry(e) {
   const inst = imageFor(dirPath), inScope = inst && (small || GVB.programUsesCall(bytes));   // only programs next to the image (an image saved without a folder: any folder) that call machine code run on its machine
   const m = new Machine(dev, store); m.name = e.name; m.flash = inScope ? inst.img : null; m.rate = rate; m.cpuMhz = cpuMhz; m.rawBase = kbdBase(); machine = m;
   m.forceCharset = csSetting !== 'auto' ? csSetting : txtCharset;           // null: found out from the program's text
-  if (extWords) m.ext = true;                                               // a program written for the arucil simulator: its extra words are accepted (and it is never saved as a device .BAS)
+  if (extWords) m.ext = true;                                               // a program that uses the simulator's own words: they are accepted (a .BAS that carries them is recognised by the machine itself)
   try {
     if (small) {
       m.prog = compileProgram([{ no: 10, body: GVB.tokenizeBody('CALL ' + small.info.entry) }, { no: 20, body: GVB.tokenizeBody('END') }]);
@@ -610,7 +610,8 @@ async function runEntry(e) {
   };
   mode = 'running'; renderSide();
   $('prog').textContent = [backend.name, ...dirPath, e.name].join(' / ');
-  setStatus('run', extWords ? '執行中　· 這支程式用到 arucil 模擬器的擴充語法（' + extWords.join('、') + '），只能在模擬器上跑，不是真機的 BAS' : '執行中'); focusIme();
+  if (!extWords && m.extUsed && m.extUsed.length) extWords = m.extUsed;
+  setStatus('run', extWords ? '執行中　· 這支程式用到擴充語法（' + extWords.join('、') + '），只能在這個模擬器上跑，不是標準的真機 BAS' : '執行中'); focusIme();
   let res;
   try { res = await m.run(); } catch (err) { res = { internal: err }; console.error(err); }
   await session.idle();
@@ -727,13 +728,14 @@ const problems = r => r.errors.slice(0, 8).map(x => '第 ' + x.line + ' 行' + (
 async function viewText(e) { try { showViewer(e.name + '（文字原始碼）', (await readListing(e)).text); } catch (err) { showViewer(e.name, '無法讀取：' + err.message); } }
 async function txtToBas(e) {
   try {
-    const { result } = await readListing(e);
-    if (result.errors.length) { showViewer(e.name + ' 無法轉成 BAS', problems(result) + (result.errors.some(x => x.sim) ? '\n\n（SLEEP、PAINT 等是 arucil 模擬器自己加的語法，真機沒有，所以不能存成真機的 BAS；要在這個模擬器試跑，按列右邊的「⋯」→「試跑（不存檔）」，或選到這個檔按 Shift+Enter）' : '')); setStatus('err', '無法轉成 BAS：' + result.errors[0].msg, true); return; }
+    const { result } = await readListing(e, true);
+    if (result.errors.length) { showViewer(e.name + ' 無法轉成 BAS', problems(result)); setStatus('err', '無法轉成 BAS：' + result.errors[0].msg, true); return; }
+    if (result.ext && !confirm(e.name + ' 用到擴充語法（' + result.extUsed.join('、') + '）。\n\n這些不是標準 GVBASIC 的語法，轉成的 .BAS 只能在這個模擬器上執行，放到真機上讀不了或會出錯。\n\n仍要轉成 BAS 嗎？')) { setStatus('', '已取消轉換'); return; }
     const name = e.name.replace(/\.txt$/i, '') + '.BAS';
     if (entries.some(x => x.name.toUpperCase() === name.toUpperCase()) && !confirm(name + ' 已經存在，要覆蓋嗎？')) return;
     await backend.write(path, name, result.bytes);
     await loadDir(name);
-    setStatus('', '已轉成 ' + name + '（' + result.lines + ' 行，' + result.charset.toUpperCase() + '）' + (result.warnings.length ? '，有 ' + result.warnings.length + ' 個警告：' + result.warnings[0].msg : ''));
+    setStatus('', '已轉成 ' + name + '（' + result.lines + ' 行，' + result.charset.toUpperCase() + '）' + (result.ext ? '，用到擴充語法（' + result.extUsed.join('、') + '），只能在這個模擬器執行' : '') + (result.warnings.length ? '，有 ' + result.warnings.length + ' 個警告：' + result.warnings[0].msg : ''));
   } catch (err) { setStatus('err', '轉換失敗：' + err.message, true); }
 }
 async function basToTxt(e) {

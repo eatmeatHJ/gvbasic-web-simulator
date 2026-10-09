@@ -29,14 +29,15 @@ function wrap(text, lead) { // -> [{start, text}] rows of at most 20 columns, do
 const LINE_RE = /^\s*(\d+)\s?([\s\S]*)$/;
 
 class LineEditor {
-  /* opts: { name, bytes, charset }   bytes = existing .BAS (omit for a new program); charset = 'big5' | 'gbk': how the text of the file is encoded - found out from the file's text when not given (a new program: Big5) */
+  /* opts: { name, bytes, charset, ext }   bytes = existing .BAS (omit for a new program); ext = accept the simulator's own words (SLEEP, PAINT ...), on by itself for a .BAS that already has some; charset = 'big5' | 'gbk': how the text of the file is encoded - found out from the file's text when not given (a new program: Big5) */
   constructor(opts) {
     opts = opts || {};
     this.name = opts.name || '';
     this.insert = true; this.msg = ''; this.dirty = false; this.top = 0;
-    this.cs = opts.charset || 'big5';
+    this.cs = opts.charset || 'big5'; this.ext = !!opts.ext;
     if (opts.bytes) {
       const ls = GV.parseBas(opts.bytes);
+      if (GV.extWordsIn(ls).length) this.ext = true;
       if (!opts.charset) this.cs = GV.detectCharset(ls);
       this.base = ls.base;
       this.lines = ls.map(l => { const text = l.no + ' ' + GV.listLineBytes(l.body); return { text, orig: l.body, origText: text }; });
@@ -83,7 +84,7 @@ class LineEditor {
     if (t.trim() === '') return true;
     const m = LINE_RE.exec(t);
     if (!m || parseInt(m[1], 10) > 9999) { this.msg = 'Line number error'; return false; }
-    try { ln.text = String(parseInt(m[1], 10)) + ' ' + GV.listLineBytes(GV.tokenizeBody(m[2], this.lead)); }
+    try { ln.text = String(parseInt(m[1], 10)) + ' ' + GV.listLineBytes(GV.tokenizeBody(m[2], this.lead, this.ext ? { ext: true } : undefined)); }
     catch (e) { this.msg = e.message; return false; }
     return true;
   }
@@ -174,7 +175,7 @@ class LineEditor {
       if (m[2].trim() === '') { byNo.delete(no); return; }               // a bare number deletes that line
       let body;
       if (ln.orig && t === ln.origText) body = ln.orig;
-      else { try { body = GV.tokenizeBody(m[2], this.lead); } catch (e) { errors.push({ li, msg: e.message }); return; } }
+      else { try { body = GV.tokenizeBody(m[2], this.lead, this.ext ? { ext: true } : undefined); } catch (e) { errors.push({ li, msg: e.message }); return; } }
       byNo.set(no, { no, body });
     });
     if (errors.length) return { errors };

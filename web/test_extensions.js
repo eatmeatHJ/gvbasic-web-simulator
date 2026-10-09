@@ -1,5 +1,5 @@
 // node web/test_extensions.js : the arucil simulator's own words (SLEEP PAINT LOAD POINT CHECKKEY FOPEN FGETC FTELL FPUTC FREAD FWRITE FSEEK, OPEN ... FOR BINARY).
-// The device has none of them: a program that uses them can be run here, but it never becomes a device .BAS.
+// The device has none of them: a program that uses them runs here, and a .BAS made from it (the page asks first, tools/txt2bas.js needs --ext) only runs here too.
 const G = require('./gvb.js'), T = require('./txt2bas.js');
 let failed = 0;
 const check = (ok, what) => { console.log((ok ? 'PASS ' : 'FAIL ') + what); if (!ok) failed++; };
@@ -65,6 +65,31 @@ async function runText(text, dats, rate) {
   const body = Uint8Array.from([0xee, 0x20, 0x35]);
   const plain = G.compileProgram([{ no: 10, body }]);
   check(plain.lines[0].code[0].op === 'unsupported' && /TOK_EE/.test(plain.lines[0].code[0].name), 'a device program with the byte $EE in it does not suddenly get a SLEEP');
+
+  // 7. a .BAS written from such a text is recognised by itself: it runs, opens in the editor and goes back to text without the user switching anything on
+  const E = require('./editor.js');
+  const src = '10 SLEEP 5:X=POINT(1,1)\n20 OPEN "B" FOR BINARY AS 1\n30 LOAD 4096,1,7\n40 CLOSE 1:PRINT "OK"';
+  const made = T.convertText(src, { ext: 'auto' });
+  check(!made.errors.length && made.ext && G.extWordsIn(G.parseBas(made.bytes)).join() === 'SLEEP,POINT,BINARY,LOAD', 'extWordsIn finds the words in a saved .BAS, in order of first use  (' + G.extWordsIn(G.parseBas(made.bytes)).join() + ')');
+  const plainBas = T.convertText('10 PRINT "SLEEP":REM PAINT\n20 FOR BINARY=1 TO 2:NEXT\n30 OPEN "A" FOR RANDOM AS 1 LEN=2');
+  check(!plainBas.errors.length && G.extWordsIn(G.parseBas(plainBas.bytes)).length === 0, 'a device program that only mentions the words in a string, a remark or a variable name has none');
+  {
+    const dev2 = new G.Device(), m2 = new G.Machine(dev2, new G.DatStore([{ name: 'B.DAT', data: 'ABC' }]));      // m2.ext is never set by hand
+    m2.rate = 0; m2.load(made.bytes, 'T.BAS'); const fin2 = await m2.run();
+    check(m2.ext === true && m2.extUsed.join() === 'SLEEP,POINT,BINARY,LOAD' && fin2.ended && screen(dev2) === 'OK', 'the machine runs it with the words switched on  (screen: "' + screen(dev2) + '")');
+  }
+  {
+    const ed = E.LineEditor ? new E.LineEditor({ bytes: made.bytes }) : null;
+    check(ed.ext === true && ed.lines[0].text === '10 SLEEP 5:X=POINT(1,1)', 'the editor lists it with the words and accepts them in edited lines  (' + ed.lines[0].text + ')');
+    ed.lines.push({ text: '50 SLEEP 9', orig: null, origText: null });
+    const b = ed.build(); check(!b.errors && G.listProgram(b.bytes).includes('50 SLEEP 9'), 'a new line with SLEEP builds in such a program');
+    const fresh = new E.LineEditor(); fresh.lines[0].text = '10 SLEEP 5';
+    const fb = fresh.build(); check(fb.errors && /SLEEP/.test(fb.errors[0].msg), 'a new program still refuses it');
+  }
+  {
+    const txt = T.basToText(made.bytes).text, again = T.convertText(txt, { ext: 'auto' });
+    check(!again.errors.length && Buffer.from(again.bytes).equals(Buffer.from(made.bytes)), 'saved as text and converted again it is the same program');
+  }
 
   console.log(failed ? '\n' + failed + ' FAILED' : '\nall passed');
   process.exit(failed ? 1 : 0);
