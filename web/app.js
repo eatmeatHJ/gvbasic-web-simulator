@@ -74,16 +74,33 @@ function asciiGlyph(b) {
   glyphCache.set('a' + b, g);
   return g;
 }
-function glyph(ch) { // double-byte characters: rasterised from a system bitmap font (16 px)
+/* Canvas text -> dots. A vector font (no bitmap strokes, e.g. on a Mac) drawn at 15 px leaves thin strokes at 20-40 % coverage; a plain "alpha > hi" cut then loses
+ * whole strokes (the top bar of 面, the hook of 字). So: solid pixels (> hi) are kept as they are, and a faint pixel (> lo) is added only where it is not touching
+ * a solid pixel (a stroke that would vanish) or touches such an added pixel (the rest of that stroke). Strokes that were already there do not get thicker. */
+function inkBits(d, sw, w, h, hi, lo) {
+  const a = (x, y) => d[(y * sw + x) * 4 + 3], g = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) g[y * w + x] = a(x, y) > hi ? 1 : 0;
+  const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && g[y * w + x] === 1;
+  const lone = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++)
+    if (!g[y * w + x] && a(x, y) > lo && !(solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1))) lone.push(y * w + x);
+  for (const i of lone) g[i] = 2;                                  // 2 = added; kept apart from solid so the second pass compares against solid dots only
+  const added = (xx, yy) => xx >= 0 && yy >= 0 && xx < w && yy < h && g[yy * w + xx] === 2;
+  const next = [];                                                  // the rest of an added stroke, up to where it meets a solid one
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++)
+    if (!g[y * w + x] && a(x, y) > lo && (added(x - 1, y) || added(x + 1, y) || added(x, y - 1) || added(x, y + 1))) next.push(y * w + x);
+  for (const i of next) g[i] = 2;
+  for (let i = 0; i < g.length; i++) g[i] = g[i] ? 1 : 0;
+  return g;
+}
+function glyph(ch) { // double-byte characters: rasterised from a system font (16 px)
   let g = glyphCache.get(ch);
   if (g) return g;
   gctx.clearRect(0, 0, 16, 16);
   gctx.fillStyle = '#000'; gctx.textBaseline = 'top';
   gctx.font = '15px "MingLiU","PMingLiU","Microsoft JhengHei","Noto Sans TC","PingFang TC",sans-serif';
   gctx.fillText(ch, 0, 1);
-  const d = gctx.getImageData(0, 0, 16, 16).data;
-  g = new Uint8Array(16 * 16);
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) g[y * 16 + x] = d[(y * 16 + x) * 4 + 3] > 100 ? 1 : 0;
+  g = inkBits(gctx.getImageData(0, 0, 16, 16).data, 16, 16, 16, 100, 25);
   glyphCache.set(ch, g);
   return g;
 }
@@ -105,9 +122,7 @@ function smallGlyph(ch, w) {
   sctx.clearRect(0, 0, 12, 14); sctx.fillStyle = '#000'; sctx.textBaseline = 'top';
   sctx.font = '12px "SimSun","NSimSun","MingLiU","Noto Sans Mono CJK SC","Courier New",monospace';
   sctx.fillText(ch, 0, 0);
-  const d = sctx.getImageData(0, 0, 12, 14).data;
-  g = new Uint8Array(w * 13);
-  for (let y = 0; y < 13; y++) for (let x = 0; x < w; x++) g[y * w + x] = d[(y * 12 + x) * 4 + 3] > 110 ? 1 : 0;
+  g = inkBits(sctx.getImageData(0, 0, 12, 14).data, 12, w, 13, 110, 40);
   glyphCache.set(key, g); return g;
 }
 /* One cell of the engine's small text: 6 pixels wide (12 for a double-byte character, which covers two cells), 13 rows high, rows start at y = 13 * row (the engine's own boxes for
