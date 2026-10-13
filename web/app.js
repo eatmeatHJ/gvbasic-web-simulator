@@ -93,9 +93,11 @@ function inkBits(d, sw, w, h, hi, lo) {
   for (let i = 0; i < g.length; i++) g[i] = g[i] ? 1 : 0;
   return g;
 }
-function glyph(ch) { // double-byte characters: rasterised from a system font (16 px)
+function glyph(ch) { // double-byte characters: the built-in Traditional Chinese bitmap font, else rasterised from a system font (16 px)
   let g = glyphCache.get(ch);
   if (g) return g;
+  const own = window.LCDFONT && LCDFONT.big5glyph16(ch);
+  if (own) { g = LCDFONT.bits(own, 16, 16); glyphCache.set(ch, g); return g; }
   gctx.clearRect(0, 0, 16, 16);
   gctx.fillStyle = '#000'; gctx.textBaseline = 'top';
   gctx.font = '15px "MingLiU","PMingLiU","Microsoft JhengHei","Noto Sans TC","PingFang TC",sans-serif';

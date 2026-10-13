@@ -5,6 +5,9 @@
 ## 隨本倉庫發佈的
 
 - **點陣字型資料**（`web/fonts.js`、`web/font.js`）：ASCII、GB2312 漢字、圖形字與 12×12 小字。資料取自 [arucil/gvbasic-simulator4cpp](https://github.com/arucil/gvbasic-simulator4cpp) 的 `res/`（MIT 授權，全文在下面）；這類字型資料原本來自機器本身，所以請把它們當成參考資料看待。若你是權利人、希望移除，請開 issue，我們會處理。
+- **繁體中文點陣字型資料**（`web/font_big5.js`，由 `tools/build_big5_font.py` 產生）：Big5 的 1 萬 3 千多個繁體字，16×16，取自 [GNU Unifont](https://unifoundry.com/unifont/) 18.0.01 的「T 來源」版本（`unifont_t-18.0.01.bdf.gz`）。程式只取用字形點陣，沒有修改字形。
+  Copyright (C) 1998-2026 Roman Czyborra, Paul Hardy, Qianqian Fang, Andrew Miller, Johnnie Weaver, David Corbett, Ælla Chiana Moskopp, Rebecca Bettencourt, Minseo Lee, Ho-Seok Ee, et al.
+  授權：SIL Open Font License 1.1，或 GNU GPL 第 2 版（或更新）加上 GNU Font Embedding Exception（二擇一）。授權全文見 <https://unifoundry.com/unifont/> 與 <https://openfontlicense.org/>。
 - **語言行為的依據**：arucil 的模擬器、[fancyblock/GVBASIC](https://github.com/fancyblock/GVBASIC)（MIT）的文件與測試筆記、公開的說明文件，再加上我們自己做的行為測試（只記錄事實，見 `docs/`）。沒有複製它們的原始碼。
 
 ### arucil/gvbasic-simulator4cpp 的授權（MIT）

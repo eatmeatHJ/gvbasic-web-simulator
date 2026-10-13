@@ -3,7 +3,7 @@
  *   gb12     12 x 12 GB2312 characters, 24 bytes each (rows of 2 bytes, the top 12 bits are the row)
  *   ascii12  6 x 12 ASCII, 12 bytes each (1 byte per row, the top 6 bits)
  *   pic16    the machine's own 16 x 16 pictures behind GB codes $F8A1-$FDD9 (527 of them; the mainland models' symbols, portraits and map tiles)
- * Only for the GBK / GB2312 side: the Big5 (Taiwan) machines have their own fonts, which we do not have.
+ * Only for the GBK / GB2312 side: the Big5 (Taiwan) machines have their own fonts, which we do not have (big5glyph16 below stands in for them).
  * Index of a GB2312 character: rows $A1-$A9 are symbols, rows $AA-$AF do not exist (arucil closes the gap), then $B0.. are the hanzi. */
 (function (root) {
 'use strict';
@@ -48,6 +48,16 @@ function pictogram16(code, fam) {
   if (k < 0 || k >= 564) return null;
   const g = slice('pic16', k, 32); return g && !blank(g) ? g : null;
 }
+/* Traditional Chinese (Big5) characters, 16 x 16, found by the character itself: GNU Unifont's T-source build, not the machine's own font (web/font_big5.js, see NOTICE.md).
+ * null when the character is not in it (a symbol Unifont draws narrow, a character outside Big5) - the caller then falls back to a system font. */
+const BIG5 = node ? (() => { try { return require('./font_big5.js'); } catch (e) { return null; } })() : root.GVB_BIG5FONT;
+let big5Index = null, big5Bits = null;
+function big5glyph16(ch) {
+  if (!BIG5) return null;
+  if (!big5Index) { big5Index = new Map(); let i = 0; for (const c of BIG5.chars) big5Index.set(c, i++); big5Bits = decode(BIG5.bits); }
+  const i = big5Index.get(ch);
+  return i === undefined ? null : big5Bits.subarray(i * 32, i * 32 + 32);
+}
 /* bit pictures: width x height array of 0 / 1, the form the page's glyph code uses */
 function bits(g, w, h) { const o = new Uint8Array(w * h), bw = (w + 7) >> 3; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) o[y * w + x] = (g[y * bw + (x >> 3)] >> (7 - (x & 7))) & 1; return o; }
 
@@ -70,6 +80,6 @@ function makeStamper(dev) {
   };
 }
 
-const api = { glyph16, glyph12, ascii12, picture16, pictogram16, pictogramIndex, bits, index, makeStamper };
+const api = { glyph16, glyph12, ascii12, picture16, pictogram16, pictogramIndex, big5glyph16, bits, index, makeStamper };
 if (node) module.exports = api; else root.LCDFONT = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

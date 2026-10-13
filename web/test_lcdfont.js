@@ -41,6 +41,21 @@ check(F.glyph16(0xA1, 0xA1) !== null && F.glyph16(0x81, 0x40) === null, 'the ide
   check(G.detectPictoFamily([body(0xFA56, 0xFB04)]) === 'b', 'a code with a second byte below 40 can only be numbering b');
 }
 
+// the built-in Traditional Chinese font (web/font_big5.js): found by the character; 面 keeps its top bar, which thin system fonts used to lose at 16 px
+{
+  const men = rows(F.big5glyph16('面'), 16, 16);
+  check(men.length === 16 && men[0] === '.............#..' && men[1] === '###############.' && men[5] === '..############..', '面: row 1 is the long top bar, row 5 the top of the frame');
+  check(rows(F.big5glyph16('一'), 16, 16).filter(r => r.includes('#')).length >= 1 && F.big5glyph16('A') === null && F.big5glyph16('') === null, 'ASCII and private-use pictures are not in it (they never reach it)');
+  const dec = new TextDecoder('big5'); let common = 0, missing = [];
+  for (let l = 0xA4; l <= 0xC6; l++) for (let t = 0x40; t <= 0xFE; t++) {
+    if (t > 0x7E && t < 0xA1) continue;
+    if (l === 0xC6 && t > 0x7E) continue;                        // A440-C67E: the 5401 frequently used characters
+    const s = dec.decode(Uint8Array.of(l, t));
+    if (s.length === 1 && s !== '�') { common++; if (!F.big5glyph16(s)) missing.push(s); }
+  }
+  check(common === 5401 && missing.length === 0, 'all 5401 frequently used Big5 characters (A440-C67E) are in it  (' + common + ' checked, missing: ' + missing.join('') + ')');
+}
+
 // the stamper (used by the snapshot tests): GBK text lands in the bitmap as the font says
 {
   const dev = new G.Device(); dev.charset = 'gbk'; dev.stampCell = F.makeStamper(dev);

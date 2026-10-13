@@ -31,7 +31,8 @@
 | `web/cpu6502.js`, `syscalls.js`, `hwlayer.js`, `flash.js`, `asm6502.js` | 6502 CPU、系統常式（JS 版）、直接操作硬體的程式、大型映像的分頁與按鍵、小組譯器 |
 | `web/fsys.js` | 資料夾存取層（實體資料夾／瀏覽器唯讀後端、DAT 載入與寫回） |
 | `web/tokens.js`, `web/font.js`, `web/fonts.js` | 由 `tools/build_web.py` 產生：token 表與點陣字型資料（來源見 [NOTICE.md](NOTICE.md)；重新產生需要 arucil 專案的 `res/`） |
-| `tools/` | `txt2bas.js`（文字 → `.BAS`）、`gvb_tokens.json`（token 表）、`gvb_detok.py`（`.BAS` → 文字）、`build_web.py`、`make_demo.js` |
+| `web/font_big5.js` | 由 `tools/build_big5_font.py` 產生：繁體中文（Big5）16×16 點陣字型，來自 GNU Unifont（見 [NOTICE.md](NOTICE.md)）。有了它，繁體程式的中文字不再依賴瀏覽器的系統字型，不同電腦看到的字形一致；沒收進去的字（Unifont 畫成窄的符號等）仍用系統字型 |
+| `tools/` | `txt2bas.js`（文字 → `.BAS`）、`gvb_tokens.json`（token 表）、`gvb_detok.py`（`.BAS` → 文字）、`build_web.py`、`build_big5_font.py`、`make_demo.js` |
 | `docs/` | 按鍵碼、圖形字編號、官方轉換程式的 token 表 |
 | `demo/` | 三個小示範（`HELLO.BIN`、`DRAW.BIN`、`CALLDEMO.BAS`） |
 
